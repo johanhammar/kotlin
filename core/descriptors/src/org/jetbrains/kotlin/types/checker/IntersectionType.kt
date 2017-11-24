@@ -86,12 +86,12 @@ object TypeIntersector {
         /**
          * resultNullability. Value description:
          * ACCEPT_NULL means that all types marked nullable
-         * NOT_NULL means that there is one type which is subtype of Any => all types can be marked not nullable
+         * NOT_NULL means that there is one type which is subtype of Any => all types can be made definitely not null
          * UNKNOWN means, that we do not know, i.e. more precisely, all singleClassifier types marked nullable if any,
          * and other types is captured types or type parameters without not-null upper bound. Example: `String? & T` such types we should leave as is.
          */
         val correctNullability = inputTypes.mapTo(LinkedHashSet()) {
-            if (resultNullability == ResultNullability.NOT_NULL) it.makeNullableAsSpecified(false) else it
+            if (resultNullability == ResultNullability.NOT_NULL) it.makeSimpleTypeReallyNotNull() else it
         }
 
         return intersectTypesWithoutIntersectionType(correctNullability)
