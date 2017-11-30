@@ -59,19 +59,27 @@ class LazyWrappedType(storageManager: StorageManager, computation: () -> KotlinT
     override fun isComputed(): Boolean = lazyValue.isComputed()
 }
 
-class DefinitelyNotNullType internal constructor(val original: UnwrappedType) : DelegatingSimpleType(), CustomTypeVariable {
-    init {
-        assert(makesSenseToBeDefinitelyNotNull(original)) {
-            "DefinitelyNotNullType makes sense only for type variables, type parameters and captured types"
-        }
-        if (original is FlexibleType) {
-            assert(original.lowerBound.constructor == original.upperBound.constructor) {
-                "DefinitelyNotNullType for flexible type can be created only from type variable with the same constructor for bounds"
+class DefinitelyNotNullType private constructor(val original: SimpleType) : DelegatingSimpleType(), CustomTypeVariable {
+    companion object {
+        internal fun makeDefinitelyNotNull(type: UnwrappedType): DefinitelyNotNullType? {
+            return when {
+                type is DefinitelyNotNullType -> type
+
+                makesSenseToBeDefinitelyNotNull(type) -> {
+                    if (type is FlexibleType) {
+                        assert(type.lowerBound.constructor == type.upperBound.constructor) {
+                            "DefinitelyNotNullType for flexible type can be created only from type variable with the same constructor for bounds"
+                        }
+                    }
+
+
+                    DefinitelyNotNullType(type.lowerIfFlexible())
+                }
+
+                else -> null
             }
         }
-    }
 
-    companion object {
         fun makesSenseToBeDefinitelyNotNull(type: UnwrappedType): Boolean =
                 type.constructor is NewTypeVariableConstructor ||
                 type.constructor.declarationDescriptor is TypeParameterDescriptor ||
@@ -79,7 +87,7 @@ class DefinitelyNotNullType internal constructor(val original: UnwrappedType) : 
     }
 
     override val delegate: SimpleType
-        get() = original.lowerIfFlexible()
+        get() = original
 
     override val isMarkedNullable: Boolean
         get() = false
@@ -88,13 +96,8 @@ class DefinitelyNotNullType internal constructor(val original: UnwrappedType) : 
         get() = delegate.constructor is NewTypeVariableConstructor ||
                 delegate.constructor.declarationDescriptor is TypeParameterDescriptor
 
-    override fun substitutionResult(replacement: KotlinType): KotlinType {
-        val unwrappedType = replacement.unwrap()
-        return when (unwrappedType) {
-            is DefinitelyNotNullType -> unwrappedType
-            else -> unwrappedType.makeReallyNotNull()
-        }
-    }
+    override fun substitutionResult(replacement: KotlinType): KotlinType =
+            replacement.unwrap().makeDefinitelyNotNullOrNotNull()
 
     override fun replaceAnnotations(newAnnotations: Annotations): DefinitelyNotNullType =
             DefinitelyNotNullType(delegate.replaceAnnotations(newAnnotations))
@@ -102,18 +105,14 @@ class DefinitelyNotNullType internal constructor(val original: UnwrappedType) : 
     override fun makeNullableAsSpecified(newNullability: Boolean): SimpleType =
             if (newNullability) delegate.makeNullableAsSpecified(newNullability) else this
 
-    override fun toString(): String = "${super.toString()}!!"
+    override fun toString(): String = "$delegate!!"
 }
 
 val KotlinType.isDefinitelyNotNullType: Boolean
     get() = unwrap() is DefinitelyNotNullType
 
-fun SimpleType.makeSimpleTypeReallyNotNull(): SimpleType = makeReallyNotNull() as SimpleType
+fun SimpleType.makeSimpleTypeDefinitelyNotNullOrNotNull(): SimpleType =
+        DefinitelyNotNullType.makeDefinitelyNotNull(this) ?: makeNullableAsSpecified(false)
 
-fun UnwrappedType.makeReallyNotNull(): UnwrappedType {
-    return when {
-        this is DefinitelyNotNullType -> this
-        DefinitelyNotNullType.makesSenseToBeDefinitelyNotNull(this) -> DefinitelyNotNullType(this)
-        else -> this.makeNullableAsSpecified(false)
-    }
-}
+fun UnwrappedType.makeDefinitelyNotNullOrNotNull(): UnwrappedType =
+        DefinitelyNotNullType.makeDefinitelyNotNull(this) ?: makeNullableAsSpecified(false)

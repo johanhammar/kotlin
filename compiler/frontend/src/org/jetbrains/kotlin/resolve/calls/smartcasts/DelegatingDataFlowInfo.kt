@@ -178,7 +178,7 @@ internal class DelegatingDataFlowInfo private constructor(
 
     private fun KotlinType.makeReallyNotNullIfNeeded(settings: LanguageVersionSettings): KotlinType {
         return if (settings.supportsFeature(LanguageFeature.NewInference))
-            this.unwrap().makeReallyNotNull()
+            this.unwrap().makeDefinitelyNotNullOrNotNull()
         else
             TypeUtils.makeNotNullable(this)
     }

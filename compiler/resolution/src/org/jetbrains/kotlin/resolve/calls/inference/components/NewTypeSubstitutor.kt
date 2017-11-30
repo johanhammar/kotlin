@@ -113,7 +113,7 @@ interface NewTypeSubstitutor {
             replacement = replacement.makeNullableAsSpecified(true)
         }
         if (type.isDefinitelyNotNullType) {
-            replacement = replacement.makeReallyNotNull()
+            replacement = replacement.makeDefinitelyNotNullOrNotNull()
         }
 
         return replacement

@@ -278,7 +278,7 @@ class TypeApproximator {
                 is DefinitelyNotNullType -> {
                     val approximatedCapturedType = approximateCapturedType(type.original as NewCapturedType, conf, toSuper, depth)
                     return if (conf.definitelyNotNullType)
-                        approximatedCapturedType?.makeReallyNotNull()
+                        approximatedCapturedType?.makeDefinitelyNotNullOrNotNull()
                     else
                         approximatedCapturedType?.makeNullableAsSpecified(false)
                 }

@@ -23,7 +23,6 @@ import org.jetbrains.kotlin.types.*
 import org.jetbrains.kotlin.types.checker.*
 import org.jetbrains.kotlin.types.typeUtil.builtIns
 import org.jetbrains.kotlin.types.typeUtil.contains
-import org.jetbrains.kotlin.types.typeUtil.makeNotNullable
 
 abstract class TypeCheckerContextForConstraintSystem : TypeCheckerContext(errorTypeEqualsToAnything = true, allowedTypeVariable = false) {
 
@@ -140,11 +139,9 @@ abstract class TypeCheckerContextForConstraintSystem : TypeCheckerContext(errorT
     }
 
     // Foo <: T! -- (Foo & Any .. Foo) <: T
-    // T <: T! -- (T..T?) <: T
-    // we can't use constraint (T & Any .. T) in the latter, because non-platform type with type variables is incorrect
     private fun addLowerConstraintWithSimpleSubtype(typeVariable: FlexibleType, subType: SimpleType) {
         assertFlexibleTypeVariable(typeVariable)
-        addLowerConstraint(typeVariable.constructor, KotlinTypeFactory.flexibleType(subType.makeSimpleTypeReallyNotNull(), subType))
+        addLowerConstraint(typeVariable.constructor, KotlinTypeFactory.flexibleType(subType.makeSimpleTypeDefinitelyNotNullOrNotNull(), subType))
     }
 
     // (Foo..Bar) <: T! -- (Foo & Any .. Bar) <: T
@@ -154,14 +151,14 @@ abstract class TypeCheckerContextForConstraintSystem : TypeCheckerContext(errorT
         val lowerBound = subType.lowerBound
         val upperBound = subType.upperBound
 
-        addLowerConstraint(typeVariable.constructor, KotlinTypeFactory.flexibleType(lowerBound.makeSimpleTypeReallyNotNull(), upperBound))
+        addLowerConstraint(typeVariable.constructor, KotlinTypeFactory.flexibleType(lowerBound.makeSimpleTypeDefinitelyNotNullOrNotNull(), upperBound))
     }
 
     // Foo <: T or
     // Foo <: T? -- Foo & Any <: T
     private fun addLowerConstraintForSimpleType(typeVariable: SimpleType, subType: UnwrappedType) {
         if (typeVariable.isMarkedNullable)
-            addLowerConstraint(typeVariable.constructor, subType.makeReallyNotNull().unwrap())
+            addLowerConstraint(typeVariable.constructor, subType.makeDefinitelyNotNullOrNotNull())
         else
             addLowerConstraint(typeVariable.constructor, subType)
     }
