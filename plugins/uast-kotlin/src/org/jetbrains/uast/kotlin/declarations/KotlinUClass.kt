@@ -139,9 +139,21 @@ class KotlinConstructorUMethod(
                 initializers.forEach {
                     addIfNotNull(languagePlugin.convertOpt(it.body, uastParent))
                 }
+                bodyExpressions.forEach {
+                    addIfNotNull(languagePlugin.convertOpt(it, uastParent))
+                }
             }
         }
     }
+
+    private val bodyExpressions: List<KtExpression>
+        get() {
+            val bodyExpression = (psi.kotlinOrigin as? KtFunction)?.bodyExpression ?: return emptyList()
+            return when (bodyExpression) {
+                is KtBlockExpression -> bodyExpression.statements
+                else -> listOf(bodyExpression)
+            }
+        }
 }
 
 class KotlinUAnonymousClass(

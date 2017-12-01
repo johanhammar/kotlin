@@ -1,5 +1,9 @@
 open class A(val str: String) {
 
+    init {
+        println()
+    }
+
     constructor(i: Int) : this(i.toString())
 
     open fun foo(a: Long) {}
@@ -11,7 +15,9 @@ class B(param: String) : A(param)
 class C : A {
     constructor(p: String) : super(p)
 
-    constructor(i: Int) : super(i)
+    constructor(i: Int) : super(i) {
+        println()
+    }
 
     override fun foo(a: Long) {
         super.foo(a)
